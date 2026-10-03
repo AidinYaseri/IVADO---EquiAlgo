@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ÉquiAlgo pitch</title>
+<style>
+  @page { size: 13.333in 7.5in; margin: 0; }
+  :root { --ink:#1d2433; --muted:#5b6475; --blue:#2a6f97; --orange:#e07a24; --bg:#ffffff; --soft:#f3f5f8; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: "Helvetica Neue", Arial, sans-serif; color:var(--ink); background:var(--bg); }
+  .slide { width:13.333in; height:7.5in; padding:0.6in 0.75in; page-break-after:always; position:relative; overflow:hidden; display:flex; flex-direction:column; }
+  .slide:last-child { page-break-after:auto; }
+  h1 { font-size:40pt; margin:0 0 .15in; line-height:1.1; }
+  h2 { font-size:28pt; margin:0 0 .25in; }
+  .kicker { color:var(--orange); font-weight:700; letter-spacing:.06em; text-transform:uppercase; font-size:12pt; margin-bottom:.12in; }
+  p, li { font-size:17pt; line-height:1.4; }
+  ul { margin:.05in 0; padding-left:.3in; }
+  li { margin-bottom:.08in; }
+  .muted { color:var(--muted); }
+  .row { display:flex; gap:.4in; align-items:center; flex:1; }
+  .col { flex:1; }
+  .big { font-size:54pt; font-weight:800; line-height:1; }
+  .big.o { color:var(--orange); } .big.b { color:var(--blue); }
+  .stat { background:var(--soft); border-radius:12px; padding:.25in .3in; flex:1; }
+  .stat .lbl { font-size:13pt; color:var(--muted); margin-top:.08in; }
+  img { max-width:100%; max-height:4.9in; display:block; }
+  table { border-collapse:collapse; font-size:15pt; width:100%; }
+  th, td { text-align:left; padding:.08in .12in; border-bottom:1px solid #dde2ea; }
+  th { color:var(--muted); font-weight:600; }
+  td.n { text-align:right; font-variant-numeric: tabular-nums; } th.n { text-align:right; }
+  .foot { position:absolute; bottom:.3in; left:.75in; right:.75in; font-size:10pt; color:var(--muted); display:flex; justify-content:space-between; }
+  .title-slide { justify-content:center; background:linear-gradient(135deg,#1d2433 0%,#2a3b5c 100%); color:#fff; }
+  .title-slide .muted { color:#c9d2e3; }
+  .pill { display:inline-block; background:var(--soft); border-radius:999px; padding:.04in .16in; font-size:13pt; margin-right:.1in; }
+  .formula { font-family: Menlo, Consolas, monospace; background:var(--soft); padding:.15in .25in; border-radius:10px; font-size:15pt; }
+</style>
+</head>
+<body>
+
+<section class="slide title-slide">
+  <div class="kicker">IVADO · ÉquiAlgo · CodeML 2026</div>
+  <h1>Same R score,<br>different postal code,<br>different answer.</h1>
+  <p class="muted" style="margin-top:.3in">Finding and removing two hidden regional biases in scholarship decisions</p>
+  <p class="muted">CertifiedHackerBoys · Ryan Morov · Aidin Yaseri · Arav Sahni · Makan Homayoun</p>
+</section>
+
+<section class="slide">
+  <div class="kicker">The problem</div>
+  <h2>An 88%-accurate model that copies a biased committee</h2>
+  <div class="row">
+    <div class="stat"><div class="big b">48.4%</div><div class="lbl">grant rate, Montréal and Capitale-Nationale</div></div>
+    <div class="stat"><div class="big o">27.3%</div><div class="lbl">grant rate, Bas-Saint-Laurent, Côte-Nord, Gaspésie</div></div>
+    <div class="stat"><div class="big">0.7</div><div class="lbl">R-score points between the two groups, on a scale with SD 3</div></div>
+  </div>
+  <p>A 21-point gap in outcomes, a small gap in grades. The model is "accurate" because it reproduces past decisions, and those decisions are under audit.</p>
+  <div class="foot"><span>Data: 10,000 historical files, 4,000 to score (synthetic)</span><span>2</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Bias channel 1</div>
+  <h2>The committee docked remote applicants about 1.6 R points</h2>
+  <div class="row">
+    <div class="col" style="flex:1.3"><img src="../figures/audit_grant_rate_by_R.png" alt="Grant rate by R score"></div>
+    <div class="col">
+      <ul>
+        <li>Between R 28 and 29: <b>59%</b> granted in centres, <b>26%</b> in remote regions.</li>
+        <li>A logistic model of the committee finds a flat penalty of <b>2.2 logits ≈ 1.6 R points</b> (95% CI 1.4–1.7).</li>
+        <li>Same in all 3 remote regions, zero in both centres, constant across R.</li>
+        <li>It explains <b>83%</b> of the gap.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span>audit_rapport.ipynb, sections 2–3</span><span>3</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Why "just delete the column" fails</div>
+  <h2>Proxies rebuild the penalty</h2>
+  <div class="row">
+    <div class="col" style="flex:1.2"><img src="../figures/audit_proxies.png" alt="Proxy AUC"></div>
+    <div class="col">
+      <ul>
+        <li>Distance and postal code predict region almost perfectly (AUC ≈ 1.0). Hours worked: 0.80. Income: 0.68.</li>
+        <li>Fit the committee without region and the penalty moves onto <b>distance</b> (+0.11 → −0.50).</li>
+        <li>Even an R-score-only model keeps a gap, because it learns from biased labels.</li>
+      </ul>
+      <p><b>The bias is in the labels, not the columns.</b></p>
+    </div>
+  </div>
+  <div class="foot"><span>audit_rapport.ipynb, section 4</span><span>4</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Bias channel 2</div>
+  <h2>The committee also rewarded family income</h2>
+  <div class="row" style="align-items:flex-start">
+    <div class="col">
+      <ul>
+        <li>Remote families earn <b>25% less</b> (median 51.6 k$ vs 69.2 k$). An income bonus works against them too.</li>
+        <li>Penalty removed: grant rates 41.5% vs 37.7%. Penalty <b>and</b> income removed: <b>about equal</b>.</li>
+        <li>We tested it with <b>13 HxBuddy submissions</b>, each changing one ingredient.</li>
+      </ul>
+      <p style="font-size:15pt" class="muted">Income is not merit. Hours worked are, at exactly the committee's own weight. Distance and first-generation status add nothing.</p>
+    </div>
+    <div class="col">
+      <table>
+        <tr><th>Merit score tested</th><th class="n">HxBuddy acc.</th></tr>
+        <tr><td>R + income</td><td class="n">90.08</td></tr>
+        <tr><td>R only</td><td class="n">92.28</td></tr>
+        <tr><td>R + income + hours + distance</td><td class="n">92.38</td></tr>
+        <tr><td>R + hours + distance</td><td class="n">94.38</td></tr>
+        <tr><td>R + 0.12 / 0.17 / 0.20 × hours</td><td class="n">94.33 / 94.53 / 94.03</td></tr>
+        <tr><td><b>R + 0.146 × hours, 41%</b></td><td class="n"><b>94.68</b></td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="foot"><span>audit_rapport.ipynb, section 6</span><span>5</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Metric choice</div>
+  <h2>Equal opportunity, measured against merit, not the committee</h2>
+  <div class="row" style="align-items:flex-start">
+    <div class="col">
+      <ul>
+        <li><b>Why equal opportunity:</b> a merit award promises that a deserving student in Gaspé has the same chance as one in Montréal.</li>
+        <li><b>Why not demographic parity:</b> it forces equal rates whether or not merit differs, and says nothing about <i>who</i> gets the award.</li>
+        <li><b>The trap:</b> against the committee's labels the production model's TPR gap is only 0.06. It "passes" by copying the bias.</li>
+      </ul>
+    </div>
+    <div class="col">
+      <table>
+        <tr><th>Merit reference (no penalty)</th><th class="n">EO gap, production</th></tr>
+        <tr><td>Committee criteria, penalty removed</td><td class="n">0.261</td></tr>
+        <tr><td>R score only</td><td class="n">0.225</td></tr>
+        <tr><td>R score + hours worked</td><td class="n">0.296</td></tr>
+        <tr><td>R + income + hours (linear)</td><td class="n">0.236</td></tr>
+        <tr><td><b>Organisers' hidden reference</b></td><td class="n"><b>0.270</b></td></tr>
+      </table>
+      <p class="muted" style="font-size:13pt">Our references bracket the published value: evidence the diagnosis is right.</p>
+    </div>
+  </div>
+  <div class="foot"><span>audit_rapport.ipynb, sections 5 and 7</span><span>6</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">The fix</div>
+  <h2>Make the model aware of the bias, then switch it off</h2>
+  <div class="formula">committee = 1.39·R + 0.20·hours <span style="color:var(--orange)">+ 1.78·log(income) + 0.11·distance − 2.17·remote</span></div>
+  <div class="formula" style="margin-top:.15in"><b>our score = R + 0.146 × weekly hours worked</b> &nbsp;→ top 41% get an award</div>
+  <ul style="margin-top:.25in">
+    <li><b>Train</b> with the remote indicator in the model, so it absorbs the penalty instead of the proxies.</li>
+    <li><b>Score</b> with the penalty, the income bonus and distance removed. Same merit, same score, wherever you live.</li>
+    <li><b>Budget</b>: 1,640 of 4,000 awards (41%), inside the 36–44% window.</li>
+    <li><b>Fairness knob</b>: λ, the share of the penalty removed. Sweeping it gives the Pareto front.</li>
+  </ul>
+  <div class="foot"><span>equialgo.py · model_corrige.ipynb, sections 3 and 8 · model_final.json</span><span>7</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Pareto front</div>
+  <h2>Fairness and merit improve together</h2>
+  <img src="../figures/pareto_front.png" alt="Pareto front" style="max-height:4.2in">
+  <p style="font-size:14pt" class="muted">Held-out split, budget enforced. Dark diamonds: our final model. ThresholdOptimizer closes a third of the gap at best, and EG with TPR parity does not move: on biased labels the constraint is already met.</p>
+  <div class="foot"><span>model_corrige.ipynb, sections 4–6</span><span>8</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Results on the 4,000 applicants</div>
+  <h2>Gap closed, budget kept</h2>
+  <table>
+    <tr><th></th><th class="n">Production</th><th class="n">Ours</th></tr>
+    <tr><td>Grant rate</td><td class="n">39.1%</td><td class="n"><b>41.0%</b></td></tr>
+    <tr><td>Grant rate centres / remote</td><td class="n">46.8% / 27.8%</td><td class="n"><b>40.9% / 41.1%</b></td></tr>
+    <tr><td>EO gap vs R + hours merit reference</td><td class="n">0.296</td><td class="n"><b>0.000</b></td></tr>
+    <tr><td>HxBuddy indicative accuracy / macro F1</td><td class="n"></td><td class="n"><b>94.68% / 94.47%</b></td></tr>
+    <tr><td>Accuracy vs past committee (held-out)</td><td class="n">0.881</td><td class="n">0.853</td></tr>
+  </table>
+  <p style="margin-top:.2in">390 decisions change. The drop in "accuracy" against the committee is exactly the bias we removed.</p>
+  <div class="foot"><span>model_corrige.ipynb, section 8 · predictions.csv</span><span>9</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Governance</div>
+  <h2>Monitoring in production</h2>
+  <div class="row" style="align-items:flex-start">
+    <div class="col">
+      <ul>
+        <li><b>Every batch:</b> grant rate (stop outside 36–44%), parity gap per region (alert &gt; 0.05, stop &gt; 0.10), input drift.</li>
+        <li><b>Each semester:</b> re-estimate the penalty on blind-panel files; intersectional checks (region × income, × first-generation).</li>
+        <li><b>Yearly:</b> equal-opportunity gap against an <b>independent</b> merit signal: first-year results and persistence.</li>
+      </ul>
+    </div>
+    <div class="col">
+      <ul>
+        <li>Region and income used only to <b>measure</b> bias, never to score.</li>
+        <li>Law 25: notice of automated decision, main factors on request, human review on appeal.</li>
+        <li>Hours worked now count: verify them (pay stubs).</li>
+        <li>Never retrain on our own decisions.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span>GOVERNANCE.md</span><span>10</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Limits</div>
+  <h2>What we cannot claim</h2>
+  <ul>
+    <li>We never saw the jury's reference. HxBuddy feedback chose two settings (drop income, 41%); we stopped when gains fell to 0.05 points and disclose it.</li>
+    <li>If merit should ignore hours worked, our model slightly favours remote applicants (gap ≈ −0.05).</li>
+    <li>ExponentiatedGradient with tight demographic parity is a close competitor. We prefer one readable formula.</li>
+    <li>Synthetic data, two regional blocks. Other regions and a legal review are needed before roll-out.</li>
+  </ul>
+  <p style="margin-top:.2in"><b>Takeaway:</b> the fix was not a better classifier. It was refusing to treat past decisions as the truth.</p>
+  <div class="foot"><span>Tools: Python, pandas, scikit-learn, fairlearn, matplotlib · AI assistance: Claude Code (Anthropic)</span><span>11</span></div>
+</section>
+
+</body>
+</html>

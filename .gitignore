@@ -1,0 +1,8 @@
+# Local environment
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+
+# Challenge data: distributed by the organisers, not republished here.
+# Remove this line only if the organisers confirm the data may be shared.
+data/

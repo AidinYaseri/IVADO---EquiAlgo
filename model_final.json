@@ -1,0 +1,22 @@
+{
+  "model": "Bias-aware logistic model of the historical committee, regional penalty and income bonus removed",
+  "final_score": {
+    "cote_r_equivalent": 1.0,
+    "heures_travail_semaine": 0.145727
+  },
+  "grant_rule": "top 41% of final_score",
+  "committee_coefficients_logits": {
+    "cote_r": 1.385198,
+    "log_revenu": 1.779035,
+    "heures": 0.201861,
+    "distance_100km": 0.108523,
+    "eloignee": -2.165242
+  },
+  "removed_terms": [
+    "eloignee (regional penalty)",
+    "log_revenu (income bonus)",
+    "distance_100km (regional proxy)"
+  ],
+  "regional_penalty_r_points": 1.5631,
+  "trained_on": "data/donnees_demandes.csv (10,000 files)"
+}
