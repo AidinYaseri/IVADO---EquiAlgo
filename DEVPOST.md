@@ -21,8 +21,12 @@ evaluation applicants under the fixed budget. We also propose a monitoring and g
   three remote regions and neither centre. It explains 83% of the gap.
 - **Second channel.** The committee also rewarded family income. Remote families earn 25% less, so that bonus also
   worked against them.
-- **Proxies.** Distance and postal code identify the region almost perfectly. Without the region column, a model moves
-  the penalty onto distance, so deleting columns does not help: the bias is in the labels.
+- **Proxies.** Distance and postal code identify the region almost perfectly, and SHAP shows distance costs remote
+  applicants as much as the region label. Without the region column, a model moves the penalty onto distance, so
+  deleting columns does not help: the bias is in the labels.
+- **Move-to-Montréal test.** With the same grades, hours and income, 190 of 1,628 remote applicants flip from refused to
+  granted under the production model just by changing their address. The hardest-hit subgroup was low-income remote
+  students: 4 in 10 of the deserving ones were refused.
 - **Fix.** Fit the committee model *with* a remote-region term so it absorbs the penalty, then score with the penalty,
   the income bonus and distance removed. What remains is the committee's own weighting of real merit:
   **R score + 0.146 × weekly hours worked**. The top 41% receive an award.
@@ -30,13 +34,21 @@ evaluation applicants under the fixed budget. We also propose a monitoring and g
   fairlearn's ThresholdOptimizer and ExponentiatedGradient, each swept over its own constraint.
 - **Metric.** Equal opportunity (TPR parity), measured against penalty-free merit references, never against the
   committee's own labels (against those, the biased model looks fair).
-- **External check.** We used 13 HxBuddy submissions as controlled experiments, each changing one ingredient. They
+- **External check.** We used 24 HxBuddy submissions as controlled experiments, each changing one ingredient. They
   showed that income is not merit, hours worked are, and the committee's hours weight was already optimal.
+
+- **Monitoring as code.** `monitoring.py` checks every batch (budget, parity, each region, income subgroups, drift).
+  We tested it on the real batch and four failure scenarios: a redeployed biased model is stopped even though its budget
+  looks normal, and inflated hours raise an alert.
 
 ## Results
 - HxBuddy indicative score: **94.68% accuracy, 94.47% macro F1** (first submission: 92.38%).
 - Grant rate 41.0% (budget 36–44%). Centres 40.9%, remote regions 41.1% (production: 46.8% vs 27.8%).
 - Equal-opportunity gap against an R score + hours merit ranking: 0.296 for the production model, 0.000 for ours.
+  Parity gap 0.19 (95% CI 0.16–0.22) for the production model, −0.002 (CI −0.03 to 0.03) for ours.
+- Same grades, different lives: those who gain an award and those who lose one have the same average R score, but the
+  gainers work twice the hours with half the family income.
+- Reproducible in one command (`python run_all.py`), 21 unit tests, model card and transition rule for affected students.
 
 ## Challenges
 The only label available is the biased one. Fairlearn's TPR-parity tools measure fairness against that label, where the
@@ -45,7 +57,7 @@ leaderboard as a careful experiment rather than a target.
 
 ## Limitations
 - We do not have the jury's reference; using HxBuddy to choose two settings (drop income, 41% rate) is a mild form of
-  tuning, which we disclose. We stopped once gains fell to 0.05 points.
+  tuning, which we disclose. Three more rounds found nothing better, so we stopped.
 - Against merit definitions that ignore hours worked, our model slightly favours remote applicants.
 - ExponentiatedGradient with a tight demographic-parity bound is a close competitor; we prefer one readable formula.
 - Synthetic data; a real deployment needs domain and legal review.

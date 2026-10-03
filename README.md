@@ -19,6 +19,10 @@ We diagnose where that gap comes from, remove the part that is bias, and propose
 
 The last line is supposed to go down: the committee's decisions are what is under audit.
 
+**Same grades, different lives.** 390 decisions change. Those who gain an award and those who lose one have the same
+average R score (28.6); those who gain work twice as many hours (14.6 vs 7.4 per week) and come from families earning
+about half as much (45 k$ vs 84 k$). The old model was rewarding comfort, not merit.
+
 ## What we found
 
 1. **The R score explains about a third of the gap.** At the same R score, remote applicants were granted far less
@@ -33,8 +37,12 @@ The last line is supposed to go down: the committee's decisions are what is unde
    was fair, and the HxBuddy experiments confirm it.
 5. **Proxies rebuild the penalty.** Distance and postal code predict the region almost perfectly (AUC ≈ 1.0), hours
    worked strongly (0.80). Without the region column, a model moves the penalty onto distance. Deleting columns does
-   not fix biased labels.
-6. **The production model's equal-opportunity gap is 0.22–0.30** against penalty-free merit rankings, which brackets
+   not fix biased labels. SHAP shows distance costs remote applicants as much as the region label itself.
+6. **Where you live changes the decision.** Moving a remote applicant to Montréal, with the same grades, hours and
+   income, flips **190 of 1,628** from refused to granted under the production model. Under ours: 0.
+7. **Low-income remote students were hurt most.** The production model refused 4 in 10 of the deserving ones
+   (TPR 0.58). After correction every income, first-generation and program subgroup is granted 38–44%.
+8. **The production model's equal-opportunity gap is 0.22–0.30** against penalty-free merit rankings, which brackets
    the 0.270 the organisers report against their hidden reference.
 
 ## What we did
@@ -52,24 +60,31 @@ income bonus) gives our Pareto front, compared with fairlearn's `ThresholdOptimi
 **Fairness metric: equal opportunity** (TPR parity between centres and remote regions), with demographic parity
 reported. The reasoning is in section 7 of `audit_rapport.ipynb`.
 
-**External check.** We used 13 HxBuddy submissions as controlled experiments, each changing one ingredient of the
+**External check.** We used 24 HxBuddy submissions as controlled experiments, each changing one ingredient of the
 score (all results in `audit_rapport.ipynb`, section 6). They showed that income is not merit, hours are, and that the
 committee's own hours weight was already the best value. Two settings were chosen this way: dropping income and the 41%
-grant rate. We stopped when gains fell to 0.05 points.
+grant rate. Three more rounds (program bonus, curved hours, seven nearby weight and rate variants) found nothing better: the committee's 0.146 at 41% is the peak.
 
 ## Repository
 
 | File | Contents |
 |---|---|
 | `predictions.csv` | 4,000 decisions, `id_candidat,decision_octroi` (the file scored 94.68% on HxBuddy) |
-| `audit_rapport.ipynb` | Bias measurement, committee model, proxy analysis, income channel, HxBuddy experiments, metric choice |
-| `model_corrige.ipynb` | Mitigation, Pareto front, robustness checks, writes `predictions.csv` and `model_final.json` |
+| `audit_rapport.ipynb` | Bias measurement, committee model, proxies, SHAP, move-to-Montréal test, income channel, HxBuddy experiments, intersectional analysis with confidence intervals, metric choice |
+| `model_corrige.ipynb` | Mitigation, Pareto front, robustness checks, who gains and who loses, writes `predictions.csv` and `model_final.json` |
+| `monitoring_demo.ipynb` | The production monitor run on the real batch and on four failure scenarios |
 | `model_final.json` | The fitted model: committee coefficients, removed terms, final formula, grant rule |
 | `equialgo.py` | Shared code: features, bias-aware model, budget selection, metrics, merit references |
-| `GOVERNANCE.md` | Ethical choices, Québec legal notes, production monitoring plan with alert thresholds |
-| `presentation.pdf` | Five-minute pitch (source: `presentation/slides.html`) |
+| `monitoring.py` | Per-batch fairness and drift monitor implementing the thresholds in `GOVERNANCE.md` |
+| `tests/`, `pytest.ini` | 21 unit tests (model, metrics, budget rule, monitor, submission format) |
+| `run_all.py` | Reproduces everything in one command |
+| `GOVERNANCE.md` | Ethical choices, Québec legal notes, monitoring plan with thresholds, transition rule |
+| `MODEL_CARD.md` | Model card (intended use, factors, metrics, results, caveats) |
+| `presentation.pptx` | Five-minute pitch as an editable PowerPoint, with speaker notes on every slide |
+| `presentation.pdf` | Same pitch as a PDF (source: `presentation/slides.html`) |
+| `PITCH_NOTES.md` | Timed 5-minute script and answers to likely jury questions |
 | `figures/` | Plots used in the notebooks and the pitch |
-| `probes/`, `probes_round2/`, `probes_round3/` | The experiment files submitted to HxBuddy (round 3 not submitted) |
+| `probes/`, `probes_round2/` … `probes_round5/` | The 24 experiment files submitted to HxBuddy |
 | `baseline_model.ipynb` | The organisers' starting notebook, unchanged |
 | `brief/` | The organisers' instructions |
 
@@ -79,11 +94,12 @@ grant rate. We stopped when gains fell to 0.05 points.
 python3 -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 # put the challenge data in data/ (donnees_demandes.csv, candidats_evaluation.csv)
-jupyter nbconvert --to notebook --execute --inplace audit_rapport.ipynb model_corrige.ipynb
+python run_all.py
 ```
 
-Both notebooks run in a few minutes on a laptop with Python 3.10 or newer. The second notebook rewrites
-`predictions.csv`, checks its format and budget, and confirms it is identical to the file scored on HxBuddy.
+`run_all.py` executes the three notebooks in order (audit, corrected model, monitoring demo), runs the unit tests and
+checks `predictions.csv` against the brief. It takes a few minutes on a laptop with Python 3.10 or newer. The model
+notebook also confirms the regenerated file is identical to the one scored on HxBuddy.
 
 ## Limitations
 
